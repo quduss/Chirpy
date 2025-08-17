@@ -2,7 +2,12 @@ package main
 
 import (
 	"net/http"
+	"sync/atomic"
 )
+
+type apiConfig struct {
+	fileserverHits atomic.Int32
+}
 
 func healthzHandler(w http.ResponseWriter, r *http.Request) {
 	// 1. Write the Content-Type header
