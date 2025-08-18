@@ -43,12 +43,15 @@ func healthzHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	apiCfg := &apiConfig{}
+
 	mux := http.NewServeMux()
 
 	// Add the readiness endpoint at /healthz
 	mux.HandleFunc("/healthz", healthzHandler)
 	// Strip the /app prefix before passing to the fileserver
-	mux.Handle("/app/", http.StripPrefix("/app", http.FileServer(http.Dir("."))))
+	fsHandler := http.StripPrefix("/app", http.FileServer(http.Dir(".")))
+	mux.Handle("/app/", apiCfg.middlewareMetricsInc(fsHandler))
 	server := &http.Server{
 		Handler: mux,
 		Addr:    ":8080",
