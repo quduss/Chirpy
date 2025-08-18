@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"sync/atomic"
 )
@@ -14,6 +15,13 @@ func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 		cfg.fileserverHits.Add(1)
 		next.ServeHTTP(w, r)
 	})
+}
+
+// handlerMetrics returns the current hit count as plain text
+func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, r *http.Request) {
+	hits := cfg.fileserverHits.Load()
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	fmt.Fprintf(w, "Hits: %d", hits)
 }
 
 func healthzHandler(w http.ResponseWriter, r *http.Request) {
