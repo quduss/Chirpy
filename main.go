@@ -24,6 +24,13 @@ func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hits: %d", hits)
 }
 
+// handlerReset resets the hit counter back to 0
+func (cfg *apiConfig) handlerReset(w http.ResponseWriter, r *http.Request) {
+	cfg.fileserverHits.Store(0)
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+}
+
 func healthzHandler(w http.ResponseWriter, r *http.Request) {
 	// 1. Write the Content-Type header
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
