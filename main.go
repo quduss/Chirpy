@@ -51,7 +51,13 @@ func main() {
 	mux.HandleFunc("/healthz", healthzHandler)
 	// Strip the /app prefix before passing to the fileserver
 	fsHandler := http.StripPrefix("/app", http.FileServer(http.Dir(".")))
+
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(fsHandler))
+
+	mux.HandleFunc("/metrics", apiCfg.handlerMetrics)
+
+	mux.HandleFunc("/reset", apiCfg.handlerReset)
+
 	server := &http.Server{
 		Handler: mux,
 		Addr:    ":8080",
