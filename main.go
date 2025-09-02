@@ -1,13 +1,29 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync/atomic"
 )
 
 type apiConfig struct {
 	fileserverHits atomic.Int32
+}
+
+type ValidateChirpRequest struct {
+	Body string `json:"body"`
+}
+
+// Error response structure
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+
+// Success response structure
+type ValidResponse struct {
+	Valid bool `json:"valid"`
 }
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
@@ -53,6 +69,49 @@ func healthzHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 3. Write the body text using w.Write
 	w.Write([]byte("OK"))
+}
+
+func validateChirpHandler(w http.ResponseWriter, r *http.Request) {
+	// Set content type
+	w.Header().Set("Content-Type", "application/json")
+
+	// Check if method is POST
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(ErrorResponse{Error: "Method not allowed"})
+		return
+	}
+
+	// Decode JSON request body
+	var req ValidateChirpRequest
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&req)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ErrorResponse{Error: "Invalid JSON"})
+		return
+	}
+
+	// Validate chirp body
+	chirpBody := strings.TrimSpace(req.Body)
+
+	// Check if chirp is empty
+	if len(chirpBody) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ErrorResponse{Error: "Chirp cannot be empty"})
+		return
+	}
+
+	// Check if chirp is too long (more than 140 characters)
+	if len(chirpBody) > 140 {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ErrorResponse{Error: "Chirp is too long"})
+		return
+	}
+
+	// If we get here, the chirp is valid
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(ValidResponse{Valid: true})
 }
 
 func main() {
