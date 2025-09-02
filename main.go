@@ -131,6 +131,8 @@ func main() {
 
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
 
+	mux.HandleFunc("/api/validate_chirp", validateChirpHandler)
+
 	server := &http.Server{
 		Handler: mux,
 		Addr:    ":8080",
