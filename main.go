@@ -19,9 +19,23 @@ func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 
 // handlerMetrics returns the current hit count as plain text
 func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
 	hits := cfg.fileserverHits.Load()
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	fmt.Fprintf(w, "Hits: %d", hits)
+
+	// Create the HTML response using the template
+	htmlTemplate := `<html>
+  <body>
+    <h1>Welcome, Chirpy Admin</h1>
+    <p>Chirpy has been visited %d times!</p>
+  </body>
+</html>`
+
+	// Use fmt.Sprintf to insert the hit count
+	htmlResponse := fmt.Sprintf(htmlTemplate, hits)
+
+	// Write the HTML response
+	w.Write([]byte(htmlResponse))
 }
 
 // handlerReset resets the hit counter back to 0
