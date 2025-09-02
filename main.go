@@ -27,7 +27,6 @@ func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, r *http.Request) {
 // handlerReset resets the hit counter back to 0
 func (cfg *apiConfig) handlerReset(w http.ResponseWriter, r *http.Request) {
 	cfg.fileserverHits.Store(0)
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -49,6 +48,7 @@ func main() {
 
 	// Add the readiness endpoint at /healthz
 	mux.HandleFunc("/healthz", healthzHandler)
+
 	// Strip the /app prefix before passing to the fileserver
 	fsHandler := http.StripPrefix("/app", http.FileServer(http.Dir(".")))
 
