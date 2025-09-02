@@ -47,16 +47,16 @@ func main() {
 	mux := http.NewServeMux()
 
 	// Add the readiness endpoint at /healthz
-	mux.HandleFunc("/healthz", healthzHandler)
+	mux.HandleFunc("GET /healthz", healthzHandler)
 
 	// Strip the /app prefix before passing to the fileserver
 	fsHandler := http.StripPrefix("/app", http.FileServer(http.Dir(".")))
 
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(fsHandler))
 
-	mux.HandleFunc("/metrics", apiCfg.handlerMetrics)
+	mux.HandleFunc("GET /metrics", apiCfg.handlerMetrics)
 
-	mux.HandleFunc("/reset", apiCfg.handlerReset)
+	mux.HandleFunc("POST /reset", apiCfg.handlerReset)
 
 	server := &http.Server{
 		Handler: mux,
