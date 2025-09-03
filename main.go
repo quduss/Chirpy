@@ -119,6 +119,32 @@ func validateChirpHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(ValidResponse{Valid: true})
 }
 
+// cleanProfanity replaces profane words with ****
+func cleanProfanity(text string) string {
+	// List of profane words to replace
+	profaneWords := []string{"kerfuffle", "sharbert", "fornax"}
+
+	// Split text into words
+	words := strings.Fields(text)
+
+	// Check each word and replace if it matches a profane word
+	for i, word := range words {
+		// Convert to lowercase for comparison (case-insensitive)
+		lowerWord := strings.ToLower(word)
+
+		// Check against each profane word
+		for _, profane := range profaneWords {
+			if lowerWord == profane {
+				words[i] = "****"
+				break
+			}
+		}
+	}
+
+	// Join words back together with spaces
+	return strings.Join(words, " ")
+}
+
 func main() {
 	apiCfg := &apiConfig{}
 
