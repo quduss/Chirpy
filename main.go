@@ -26,6 +26,11 @@ type ValidResponse struct {
 	Valid bool `json:"valid"`
 }
 
+// Success response structure
+type CleanedResponse struct {
+	CleanedBody string `json:"cleaned_body"`
+}
+
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cfg.fileserverHits.Add(1)
