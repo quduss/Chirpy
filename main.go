@@ -114,9 +114,12 @@ func validateChirpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Clean profane words from the chirp
+	cleanedBody := cleanProfanity(chirpBody)
+
 	// If we get here, the chirp is valid
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(ValidResponse{Valid: true})
+	json.NewEncoder(w).Encode(CleanedResponse{CleanedBody: cleanedBody})
 }
 
 // cleanProfanity replaces profane words with ****
