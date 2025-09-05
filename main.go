@@ -11,10 +11,12 @@ import (
 	"sync/atomic"
 
 	"github.com/joho/godotenv"
+	"github.com/quduss/Chirpy/internal/database"
 )
 
 type apiConfig struct {
 	fileserverHits atomic.Int32
+	db             *database.Queries
 }
 
 type ValidateChirpRequest struct {
@@ -176,8 +178,11 @@ func main() {
 		log.Fatal("Error pinging database:", err)
 	}
 
-	apiCfg := &apiConfig{}
+	// Create SQLC queries instance
+	dbQueries := database.New(db)
 
+	apiCfg := &apiConfig{}
+	apiCfg.db = dbQueries
 	mux := http.NewServeMux()
 
 	// Add the readiness endpoint at /healthz
