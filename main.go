@@ -3,9 +3,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
 	"strings"
 	"sync/atomic"
+
+	"github.com/joho/godotenv"
 )
 
 type apiConfig struct {
@@ -149,6 +153,17 @@ func cleanProfanity(text string) string {
 }
 
 func main() {
+	err := godotenv.Load()
+
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+	// Get database URL from environment
+	dbURL := os.Getenv("DB_URL")
+	if dbURL == "" {
+		log.Fatal("DB_URL environment variable is not set")
+	}
+
 	apiCfg := &apiConfig{}
 
 	mux := http.NewServeMux()
