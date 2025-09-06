@@ -172,6 +172,46 @@ func cleanProfanity(text string) string {
 	return strings.Join(words, " ")
 }
 
+// createUserHandler handles POST /api/users
+func (cfg *apiConfig) createUserHandler(w http.ResponseWriter, r *http.Request) {
+	// Decode JSON request body
+	var req CreateUserRequest
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+	// Validate email is not empty
+	if req.Email == "" {
+		http.Error(w, "Email is required", http.StatusBadRequest)
+		return
+	}
+	// Create user in database
+	dbUser, err := cfg.db.CreateUser(r.Context(), req.Email)
+	if err != nil {
+		log.Printf("Error creating user: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	// Convert database user to response user
+	user := User{
+		ID:        dbUser.ID,
+		CreatedAt: dbUser.CreatedAt,
+		UpdatedAt: dbUser.UpdatedAt,
+		Email:     dbUser.Email,
+	}
+	// Set response headers
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	// Encode and send response
+	if err := json.NewEncoder(w).Encode(user); err != nil {
+		log.Printf("Error encoding response: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+}
+
 func main() {
 	err := godotenv.Load()
 
