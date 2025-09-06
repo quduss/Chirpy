@@ -9,7 +9,9 @@ import (
 	"os"
 	"strings"
 	"sync/atomic"
+	"time"
 
+	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 
 	"github.com/joho/godotenv"
@@ -38,6 +40,14 @@ type ValidResponse struct {
 // Success response structure
 type CleanedResponse struct {
 	CleanedBody string `json:"cleaned_body"`
+}
+
+// User represents the user response structure
+type User struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Email     string    `json:"email"`
 }
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
