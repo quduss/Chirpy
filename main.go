@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync/atomic"
 
+	_ "github.com/lib/pq"
+
 	"github.com/joho/godotenv"
 	"github.com/quduss/Chirpy/internal/database"
 )
