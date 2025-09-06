@@ -50,6 +50,11 @@ type User struct {
 	Email     string    `json:"email"`
 }
 
+// CreateUserRequest represents the request body for creating a user
+type CreateUserRequest struct {
+	Email string `json:"email"`
+}
+
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cfg.fileserverHits.Add(1)
