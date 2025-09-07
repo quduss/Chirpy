@@ -218,6 +218,11 @@ func main() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
+
+	platform := os.Getenv("PLATFORM")
+	if platform == "" {
+		platform = "prod" // Default to the SAFER option
+	}
 	// Get database URL from environment
 	dbURL := os.Getenv("DB_URL")
 	if dbURL == "" {
