@@ -21,6 +21,7 @@ import (
 type apiConfig struct {
 	fileserverHits atomic.Int32
 	db             *database.Queries
+	platform       string
 }
 
 type ValidateChirpRequest struct {
@@ -245,6 +246,7 @@ func main() {
 
 	apiCfg := &apiConfig{}
 	apiCfg.db = dbQueries
+	apiCfg.platform = platform
 	mux := http.NewServeMux()
 
 	// Add the readiness endpoint at /healthz
