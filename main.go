@@ -56,6 +56,12 @@ type CreateUserRequest struct {
 	Email string `json:"email"`
 }
 
+// CreateChirpRequest represents the request body for creating a chirp
+type CreateChirpRequest struct {
+	Body   string    `json:"body"`
+	UserID uuid.UUID `json:"user_id"`
+}
+
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cfg.fileserverHits.Add(1)
