@@ -131,52 +131,6 @@ func healthzHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("OK"))
 }
 
-func validateChirpHandler(w http.ResponseWriter, r *http.Request) {
-	// Set content type
-	w.Header().Set("Content-Type", "application/json")
-
-	// Check if method is POST
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(ErrorResponse{Error: "Method not allowed"})
-		return
-	}
-
-	// Decode JSON request body
-	var req ValidateChirpRequest
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&req)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ErrorResponse{Error: "Invalid JSON"})
-		return
-	}
-
-	// Validate chirp body
-	chirpBody := strings.TrimSpace(req.Body)
-
-	// Check if chirp is empty
-	if len(chirpBody) == 0 {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ErrorResponse{Error: "Chirp cannot be empty"})
-		return
-	}
-
-	// Check if chirp is too long (more than 140 characters)
-	if len(chirpBody) > 140 {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ErrorResponse{Error: "Chirp is too long"})
-		return
-	}
-
-	// Clean profane words from the chirp
-	cleanedBody := cleanProfanity(chirpBody)
-
-	// If we get here, the chirp is valid
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(CleanedResponse{CleanedBody: cleanedBody})
-}
-
 // cleanProfanity replaces profane words with ****
 func cleanProfanity(text string) string {
 	// List of profane words to replace
@@ -243,6 +197,25 @@ func (cfg *apiConfig) createUserHandler(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
+// validateChirp validates and cleans the chirp body
+func validateChirp(body string) (string, error) {
+	const maxChirpLength = 140
+
+	// Check if body is empty
+	if strings.TrimSpace(body) == "" {
+		return "", fmt.Errorf("Chirp body cannot be empty")
+	}
+
+	// Check length
+	if len(body) > maxChirpLength {
+		return "", fmt.Errorf("Chirp is too long")
+	}
+
+	// Clean profanity
+	cleanedBody := cleanProfanity(body)
+	return cleanedBody, nil
+}
+
 // createChirpHandler handles POST /api/chirps
 func (cfg *apiConfig) createChirpHandler(w http.ResponseWriter, r *http.Request) {
 	// Decode JSON request body
@@ -286,25 +259,6 @@ func (cfg *apiConfig) createChirpHandler(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
-}
-
-// validateChirp validates and cleans the chirp body
-func validateChirp(body string) (string, error) {
-	const maxChirpLength = 140
-
-	// Check if body is empty
-	if strings.TrimSpace(body) == "" {
-		return "", fmt.Errorf("Chirp body cannot be empty")
-	}
-
-	// Check length
-	if len(body) > maxChirpLength {
-		return "", fmt.Errorf("Chirp is too long")
-	}
-
-	// Clean profanity
-	cleanedBody := cleanProfanity(body)
-	return cleanedBody, nil
 }
 
 func main() {
@@ -354,8 +308,6 @@ func main() {
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
 
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
-
-	mux.HandleFunc("/api/validate_chirp", validateChirpHandler)
 
 	mux.HandleFunc("POST /api/users", apiCfg.createUserHandler)
 
