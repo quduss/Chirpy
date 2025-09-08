@@ -62,6 +62,14 @@ type CreateChirpRequest struct {
 	UserID uuid.UUID `json:"user_id"`
 }
 
+type Chirp struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Body      string    `json:"body"`
+	UserID    uuid.UUID `json:"user_id"`
+}
+
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cfg.fileserverHits.Add(1)
@@ -233,6 +241,70 @@ func (cfg *apiConfig) createUserHandler(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
+}
+
+// createChirpHandler handles POST /api/chirps
+func (cfg *apiConfig) createChirpHandler(w http.ResponseWriter, r *http.Request) {
+	// Decode JSON request body
+	var req CreateChirpRequest
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+	// Validate chirp body
+	cleanedBody, err := validateChirp(req.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	// Create chirp in database
+	dbChirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{
+		Body:   cleanedBody,
+		UserID: req.UserID,
+	})
+	if err != nil {
+		log.Printf("Error creating chirp: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	// Convert database chirp to response chirp
+	chirp := Chirp{
+		ID:        dbChirp.ID,
+		CreatedAt: dbChirp.CreatedAt,
+		UpdatedAt: dbChirp.UpdatedAt,
+		Body:      dbChirp.Body,
+		UserID:    dbChirp.UserID,
+	}
+	// Set response headers
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	// Encode and send response
+	if err := json.NewEncoder(w).Encode(chirp); err != nil {
+		log.Printf("Error encoding response: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+}
+
+// validateChirp validates and cleans the chirp body
+func validateChirp(body string) (string, error) {
+	const maxChirpLength = 140
+
+	// Check if body is empty
+	if strings.TrimSpace(body) == "" {
+		return "", fmt.Errorf("Chirp body cannot be empty")
+	}
+
+	// Check length
+	if len(body) > maxChirpLength {
+		return "", fmt.Errorf("Chirp is too long")
+	}
+
+	// Clean profanity
+	cleanedBody := cleanProfanity(body)
+	return cleanedBody, nil
 }
 
 func main() {
