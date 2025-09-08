@@ -309,6 +309,8 @@ func main() {
 
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
 
+	mux.HandleFunc("POST /api/chirps", apiCfg.createChirpHandler)
+
 	mux.HandleFunc("POST /api/users", apiCfg.createUserHandler)
 
 	server := &http.Server{
