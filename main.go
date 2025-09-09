@@ -347,6 +347,8 @@ func main() {
 
 	mux.HandleFunc("POST /api/users", apiCfg.createUserHandler)
 
+	mux.HandleFunc("GET /api/chirps", apiCfg.getAllChirpsHandler)
+
 	server := &http.Server{
 		Handler: mux,
 		Addr:    ":8080",
