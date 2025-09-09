@@ -207,7 +207,7 @@ func validateChirp(body string) (string, error) {
 	}
 
 	// Check length
-	if len(body) > maxChirpLength {
+	if len(strings.TrimSpace(body)) > maxChirpLength {
 		return "", fmt.Errorf("Chirp is too long")
 	}
 
