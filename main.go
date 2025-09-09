@@ -295,6 +295,55 @@ func (cfg *apiConfig) getAllChirpsHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// getChirpByIDHandler handles GET /api/chirps/{chirpID}
+func (cfg *apiConfig) getChirpByIDHandler(w http.ResponseWriter, r *http.Request) {
+	// Get chirp ID from path parameter
+	chirpIDStr := r.PathValue("chirpID")
+	if chirpIDStr == "" {
+		http.Error(w, "Missing chirp ID", http.StatusBadRequest)
+		return
+	}
+	// Parse chirp ID as UUID
+	chirpID, err := uuid.Parse(chirpIDStr)
+	if err != nil {
+		http.Error(w, "Invalid chirp ID", http.StatusBadRequest)
+		return
+	}
+
+	// Get chirp from database
+	dbChirp, err := cfg.db.GetChirpByID(r.Context(), chirpID)
+	if err != nil {
+		// Check if it's a "no rows found" error
+		if err.Error() == "sql: no rows in result set" {
+			http.Error(w, "Chirp not found", http.StatusNotFound)
+			return
+		}
+		log.Printf("Error getting chirp: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// Convert database chirp to response chirp
+	chirp := Chirp{
+		ID:        dbChirp.ID,
+		CreatedAt: dbChirp.CreatedAt,
+		UpdatedAt: dbChirp.UpdatedAt,
+		Body:      dbChirp.Body,
+		UserID:    dbChirp.UserID,
+	}
+
+	// Set response headers
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	// Encode and send response
+	if err := json.NewEncoder(w).Encode(chirp); err != nil {
+		log.Printf("Error encoding response: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+}
+
 func main() {
 	err := godotenv.Load()
 
