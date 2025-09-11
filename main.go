@@ -15,6 +15,7 @@ import (
 	_ "github.com/lib/pq"
 
 	"github.com/joho/godotenv"
+	"github.com/quduss/Chirpy/internal/auth"
 	"github.com/quduss/Chirpy/internal/database"
 )
 
@@ -172,8 +173,24 @@ func (cfg *apiConfig) createUserHandler(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "Email is required", http.StatusBadRequest)
 		return
 	}
+
+	if req.Password == "" {
+		http.Error(w, "Password is required", http.StatusBadRequest)
+		return
+	}
+
+	// Hash the password
+	hashedPassword, err := auth.HashPassword(req.Password)
+	if err != nil {
+		http.Error(w, "Failed to hash password", http.StatusInternalServerError)
+		return
+	}
 	// Create user in database
-	dbUser, err := cfg.db.CreateUser(r.Context(), req.Email)
+	dbUser, err := cfg.db.CreateUser(r.Context(), database.CreateUserParams{
+		Email:          req.Email,
+		HashedPassword: hashedPassword,
+	})
+
 	if err != nil {
 		log.Printf("Error creating user: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
