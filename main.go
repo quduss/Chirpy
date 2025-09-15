@@ -23,6 +23,7 @@ type apiConfig struct {
 	fileserverHits atomic.Int32
 	db             *database.Queries
 	platform       string
+	jwtSecret      string
 }
 
 type ValidateChirpRequest struct {
@@ -420,6 +421,12 @@ func main() {
 	if platform == "" {
 		platform = "prod" // Default to the SAFER option
 	}
+
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Fatal("JWT_SECRET environment variable is required")
+	}
+
 	// Get database URL from environment
 	dbURL := os.Getenv("DB_URL")
 	if dbURL == "" {
@@ -443,6 +450,7 @@ func main() {
 	apiCfg := &apiConfig{}
 	apiCfg.db = dbQueries
 	apiCfg.platform = platform
+	apiCfg.jwtSecret = jwtSecret
 	mux := http.NewServeMux()
 
 	// Add the readiness endpoint at /healthz
