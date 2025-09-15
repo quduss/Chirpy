@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"net/http"
 	"testing"
 	"time"
 
@@ -212,5 +213,78 @@ func TestMakeJWTDifferentUserIDs(t *testing.T) {
 
 	if parsedUserID2 != userID2 {
 		t.Fatalf("Expected user ID %v for token 2, got %v", userID2, parsedUserID2)
+	}
+}
+
+func TestGetBearerToken(t *testing.T) {
+	// Test valid bearer token
+	headers := make(http.Header)
+	tokenString := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test.token"
+	headers.Set("Authorization", "Bearer "+tokenString)
+
+	token, err := GetBearerToken(headers)
+	if err != nil {
+		t.Fatalf("Failed to extract bearer token: %v", err)
+	}
+
+	if token != tokenString {
+		t.Fatalf("Expected token %s, got %s", tokenString, token)
+	}
+}
+
+func TestGetBearerTokenMissingHeader(t *testing.T) {
+	headers := make(http.Header)
+
+	_, err := GetBearerToken(headers)
+	if err == nil {
+		t.Fatal("Should return error when Authorization header is missing")
+	}
+}
+
+func TestGetBearerTokenMalformedHeader(t *testing.T) {
+	testCases := []string{
+		"Bearer",               // Missing token
+		"NotBearer token123",   // Wrong prefix
+		"token123",             // Missing Bearer
+		"Bearer token1 token2", // Too many parts
+		"bearer token123",      // Lowercase bearer (should work)
+	}
+
+	for i, authValue := range testCases {
+		headers := make(http.Header)
+		headers.Set("Authorization", authValue)
+
+		token, err := GetBearerToken(headers)
+
+		// The lowercase "bearer" should work
+		if i == 4 {
+			if err != nil {
+				t.Fatalf("Case %d: Should accept lowercase 'bearer': %v", i, err)
+			}
+			if token != "token123" {
+				t.Fatalf("Case %d: Expected token 'token123', got '%s'", i, token)
+			}
+		} else {
+			if err == nil {
+				t.Fatalf("Case %d: Should return error for malformed header: %s", i, authValue)
+			}
+		}
+	}
+}
+
+func TestGetBearerTokenWithWhitespace(t *testing.T) {
+	headers := make(http.Header)
+	tokenString := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test.token"
+
+	// Test with extra whitespace
+	headers.Set("Authorization", "  Bearer   "+tokenString+"  ")
+
+	token, err := GetBearerToken(headers)
+	if err != nil {
+		t.Fatalf("Failed to extract bearer token with whitespace: %v", err)
+	}
+
+	if token != tokenString {
+		t.Fatalf("Expected token %s, got %s", tokenString, token)
 	}
 }
