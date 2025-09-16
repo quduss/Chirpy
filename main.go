@@ -244,6 +244,17 @@ func validateChirp(body string) (string, error) {
 
 // createChirpHandler handles POST /api/chirps
 func (cfg *apiConfig) createChirpHandler(w http.ResponseWriter, r *http.Request) {
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		http.Error(w, "Missing or malformed token", http.StatusUnauthorized)
+		return
+	}
+	// Validate JWT and get user ID
+	userID, err := auth.ValidateJWT(token, cfg.jwtSecret)
+	if err != nil {
+		http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
+		return
+	}
 	// Decode JSON request body
 	var req CreateChirpRequest
 	decoder := json.NewDecoder(r.Body)
@@ -260,7 +271,7 @@ func (cfg *apiConfig) createChirpHandler(w http.ResponseWriter, r *http.Request)
 	// Create chirp in database
 	dbChirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{
 		Body:   cleanedBody,
-		UserID: req.UserID,
+		UserID: userID,
 	})
 	if err != nil {
 		log.Printf("Error creating chirp: %v", err)
