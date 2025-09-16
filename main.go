@@ -51,6 +51,7 @@ type User struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Email     string    `json:"email"`
+	Token     string    `json:"token"`
 }
 
 // CreateUserRequest represents the request body for creating a user
@@ -60,8 +61,9 @@ type CreateUserRequest struct {
 }
 
 type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email            string `json:"email"`
+	Password         string `json:"password"`
+	ExpiresInSeconds *int   `json:"expires_in_seconds,omitempty"`
 }
 
 // CreateChirpRequest represents the request body for creating a chirp
@@ -391,22 +393,39 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Incorrect email or password", http.StatusUnauthorized)
 		return
 	}
+	expirationTime := time.Hour // Default 1 hour
+	if req.ExpiresInSeconds != nil {
+		requestedDuration := time.Duration(*req.ExpiresInSeconds) * time.Second
+		// Cap at 1 hour maximum
+		if requestedDuration > time.Hour {
+			expirationTime = time.Hour
+		} else {
+			expirationTime = requestedDuration
+		}
+	}
+	// NEW: Create JWT token
+	token, err := auth.MakeJWT(user.ID, cfg.jwtSecret, expirationTime)
+	if err != nil {
+		http.Error(w, "Failed to create token", http.StatusInternalServerError)
+		return
+	}
 	// Return user without password
 	userResponse := User{
 		ID:        user.ID,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 		Email:     user.Email,
+		Token:     token,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 
 	if err := json.NewEncoder(w).Encode(userResponse); err != nil {
 		log.Printf("Error encoding response: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
+	w.WriteHeader(http.StatusOK)
 
 }
 
