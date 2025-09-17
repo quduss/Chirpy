@@ -90,7 +90,7 @@ func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 // handlerMetrics returns the current hit count as plain text
 func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	w.WriteHeader(http.StatusOK)
+
 	hits := cfg.fileserverHits.Load()
 
 	// Create the HTML response using the template
@@ -106,6 +106,7 @@ func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, r *http.Request) {
 
 	// Write the HTML response
 	w.Write([]byte(htmlResponse))
+	w.WriteHeader(http.StatusOK)
 }
 
 // handlerReset resets the hit counter back to 0
@@ -126,19 +127,19 @@ func (cfg *apiConfig) handlerReset(w http.ResponseWriter, r *http.Request) {
 
 	// Set response headers
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Hits reset to 0 and database cleared"))
+	w.WriteHeader(http.StatusOK)
 }
 
 func healthzHandler(w http.ResponseWriter, r *http.Request) {
 	// 1. Write the Content-Type header
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 
-	// 2. Write the status code using w.WriteHeader
-	w.WriteHeader(http.StatusOK) // 200 OK
-
 	// 3. Write the body text using w.Write
 	w.Write([]byte("OK"))
+
+	// 2. Write the status code using w.WriteHeader
+	w.WriteHeader(http.StatusOK) // 200 OK
 }
 
 // cleanProfanity replaces profane words with ****
@@ -213,7 +214,6 @@ func (cfg *apiConfig) createUserHandler(w http.ResponseWriter, r *http.Request) 
 	}
 	// Set response headers
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
 
 	// Encode and send response
 	if err := json.NewEncoder(w).Encode(user); err != nil {
@@ -221,6 +221,7 @@ func (cfg *apiConfig) createUserHandler(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
+	w.WriteHeader(http.StatusCreated)
 }
 
 // validateChirp validates and cleans the chirp body
@@ -288,7 +289,6 @@ func (cfg *apiConfig) createChirpHandler(w http.ResponseWriter, r *http.Request)
 	}
 	// Set response headers
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
 
 	// Encode and send response
 	if err := json.NewEncoder(w).Encode(chirp); err != nil {
@@ -296,6 +296,7 @@ func (cfg *apiConfig) createChirpHandler(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
+	w.WriteHeader(http.StatusCreated)
 }
 
 // getAllChirpsHandler handles GET /api/chirps
@@ -322,7 +323,6 @@ func (cfg *apiConfig) getAllChirpsHandler(w http.ResponseWriter, r *http.Request
 
 	// Set response headers
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 
 	// Encode and send response
 	if err := json.NewEncoder(w).Encode(chirps); err != nil {
@@ -330,6 +330,7 @@ func (cfg *apiConfig) getAllChirpsHandler(w http.ResponseWriter, r *http.Request
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
+	w.WriteHeader(http.StatusOK)
 }
 
 // getChirpByIDHandler handles GET /api/chirps/{chirpID}
@@ -371,7 +372,6 @@ func (cfg *apiConfig) getChirpByIDHandler(w http.ResponseWriter, r *http.Request
 
 	// Set response headers
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 
 	// Encode and send response
 	if err := json.NewEncoder(w).Encode(chirp); err != nil {
@@ -379,6 +379,7 @@ func (cfg *apiConfig) getChirpByIDHandler(w http.ResponseWriter, r *http.Request
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
