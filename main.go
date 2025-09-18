@@ -47,11 +47,12 @@ type CleanedResponse struct {
 
 // User represents the user response structure
 type User struct {
-	ID        uuid.UUID `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Email     string    `json:"email"`
-	Token     string    `json:"token,omitempty"`
+	ID           uuid.UUID `json:"id"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+	Email        string    `json:"email"`
+	Token        string    `json:"token,omitempty"`
+	RefreshToken string    `json:"refresh_token,omitempty"`
 }
 
 // CreateUserRequest represents the request body for creating a user
@@ -405,29 +406,37 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Incorrect email or password", http.StatusUnauthorized)
 		return
 	}
-	expirationTime := time.Hour // Default 1 hour
-	if req.ExpiresInSeconds != nil {
-		requestedDuration := time.Duration(*req.ExpiresInSeconds) * time.Second
-		// Cap at 1 hour maximum
-		if requestedDuration > time.Hour {
-			expirationTime = time.Hour
-		} else {
-			expirationTime = requestedDuration
-		}
-	}
+
 	// NEW: Create JWT token
-	token, err := auth.MakeJWT(user.ID, cfg.jwtSecret, expirationTime)
+	accessToken, err := auth.MakeJWT(user.ID, cfg.jwtSecret, time.Hour)
 	if err != nil {
-		http.Error(w, "Failed to create token", http.StatusInternalServerError)
+		http.Error(w, "Failed to create access token", http.StatusInternalServerError)
+		return
+	}
+
+	refreshToken, err := auth.MakeRefreshToken()
+	if err != nil {
+		http.Error(w, "Failed to create refresh token", http.StatusInternalServerError)
+		return
+	}
+	expiresAt := time.Now().UTC().Add(60 * 24 * time.Hour) // 60 days
+	_, err = cfg.db.CreateRefreshToken(r.Context(), database.CreateRefreshTokenParams{
+		Token:     refreshToken,
+		UserID:    user.ID,
+		ExpiresAt: expiresAt,
+	})
+	if err != nil {
+		http.Error(w, "Failed to store refresh token", http.StatusInternalServerError)
 		return
 	}
 	// Return user without password
 	userResponse := User{
-		ID:        user.ID,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-		Email:     user.Email,
-		Token:     token,
+		ID:           user.ID,
+		CreatedAt:    user.CreatedAt,
+		UpdatedAt:    user.UpdatedAt,
+		Email:        user.Email,
+		Token:        accessToken,
+		RefreshToken: refreshToken,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
