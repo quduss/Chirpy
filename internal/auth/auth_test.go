@@ -288,3 +288,36 @@ func TestGetBearerTokenWithWhitespace(t *testing.T) {
 		t.Fatalf("Expected token %s, got %s", tokenString, token)
 	}
 }
+
+func TestMakeRefreshToken(t *testing.T) {
+	token1, err := MakeRefreshToken()
+	if err != nil {
+		t.Fatalf("Failed to create refresh token: %v", err)
+	}
+
+	if token1 == "" {
+		t.Fatal("Refresh token should not be empty")
+	}
+
+	// Should be 64 characters (32 bytes * 2 hex chars per byte)
+	if len(token1) != 64 {
+		t.Fatalf("Expected token length 64, got %d", len(token1))
+	}
+
+	// Create another token - should be different
+	token2, err := MakeRefreshToken()
+	if err != nil {
+		t.Fatalf("Failed to create second refresh token: %v", err)
+	}
+
+	if token1 == token2 {
+		t.Fatal("Refresh tokens should be unique")
+	}
+
+	// Should only contain hex characters
+	for _, char := range token1 {
+		if !((char >= '0' && char <= '9') || (char >= 'a' && char <= 'f')) {
+			t.Fatalf("Token contains non-hex character: %c", char)
+		}
+	}
+}
