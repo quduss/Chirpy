@@ -62,9 +62,8 @@ type CreateUserRequest struct {
 }
 
 type LoginRequest struct {
-	Email            string `json:"email"`
-	Password         string `json:"password"`
-	ExpiresInSeconds *int   `json:"expires_in_seconds,omitempty"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 // CreateChirpRequest represents the request body for creating a chirp
