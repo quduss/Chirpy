@@ -58,3 +58,17 @@ func (q *Queries) GetUserFromRefreshToken(ctx context.Context, token string) (Us
 	)
 	return i, err
 }
+
+const revokeRefreshToken = `-- name: RevokeRefreshToken :exec
+UPDATE refresh_tokens 
+SET revoked_at = NOW(), 
+    updated_at = NOW()
+WHERE token = $1
+`
+
+// Revokes a refresh token by setting revoked_at and updated_at
+// This effectively "logs out" the user from this session
+func (q *Queries) RevokeRefreshToken(ctx context.Context, token string) error {
+	_, err := q.db.ExecContext(ctx, revokeRefreshToken, token)
+	return err
+}
