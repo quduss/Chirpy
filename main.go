@@ -80,6 +80,10 @@ type Chirp struct {
 	UserID    uuid.UUID `json:"user_id"`
 }
 
+type RefreshTokenResponse struct {
+	Token string `json:"token"`
+}
+
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cfg.fileserverHits.Add(1)
@@ -447,6 +451,36 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 
+}
+
+func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
+	// Extract refresh token from Authorization header
+	refreshToken, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		http.Error(w, "Missing or malformed refresh token", http.StatusUnauthorized)
+		return
+	}
+	user, err := cfg.db.GetUserFromRefreshToken(r.Context(), refreshToken)
+	if err != nil {
+		http.Error(w, "Invalid or expired refresh token", http.StatusUnauthorized)
+		return
+	}
+	accessToken, err := auth.MakeJWT(user.ID, cfg.jwtSecret, time.Hour)
+	if err != nil {
+		http.Error(w, "Failed to create access token", http.StatusInternalServerError)
+		return
+	}
+	response := RefreshTokenResponse{
+		Token: accessToken,
+	}
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Error encoding response: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func main() {
