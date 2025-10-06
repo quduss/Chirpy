@@ -568,6 +568,8 @@ func main() {
 
 	mux.HandleFunc("POST /api/refresh", apiCfg.handlerRefresh)
 
+	mux.HandleFunc("POST /api/revoke", apiCfg.handlerRevoke)
+
 	server := &http.Server{
 		Handler: mux,
 		Addr:    ":8080",
