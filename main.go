@@ -483,6 +483,24 @@ func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// POST /api/revoke - Revoke a refresh token
+func (cfg *apiConfig) handlerRevoke(w http.ResponseWriter, r *http.Request) {
+	refreshToken, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		http.Error(w, "Missing or malformed refresh token", http.StatusUnauthorized)
+		return
+	}
+	err = cfg.db.RevokeRefreshToken(r.Context(), refreshToken)
+	if err != nil {
+		// Even if the token doesn't exist, we still return 204
+		// This prevents token enumeration attacks
+		// (attacker can't tell if a token exists or not)
+	}
+
+	// Return 204 No Content (success with no response body)
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func main() {
 	err := godotenv.Load()
 
