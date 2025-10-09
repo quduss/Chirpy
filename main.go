@@ -571,6 +571,53 @@ func (cfg *apiConfig) handlerUsersUpdate(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusOK)
 }
 
+// DELETE /api/chirps/{chirpID} - Delete a chirp (only by author)
+func (cfg *apiConfig) handlerChirpsDelete(w http.ResponseWriter, r *http.Request) {
+	// Extract and validate JWT token
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		http.Error(w, "Missing or malformed token", http.StatusUnauthorized)
+		return
+	}
+
+	// Validate JWT and get user ID
+	userID, err := auth.ValidateJWT(token, cfg.jwtSecret)
+	if err != nil {
+		http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
+		return
+	}
+	// Extract chirp ID from URL path
+	chirpIDString := r.PathValue("chirpID")
+	chirpID, err := uuid.Parse(chirpIDString)
+	if err != nil {
+		http.Error(w, "Invalid chirp ID", http.StatusBadRequest)
+		return
+	}
+
+	// Get the chirp from database
+	chirp, err := cfg.db.GetChirpByID(r.Context(), chirpID)
+	if err != nil {
+		// Chirp not found
+		http.Error(w, "Chirp not found", http.StatusNotFound)
+		return
+	}
+	// Check if the user is the author of the chirp
+	if chirp.UserID != userID {
+		http.Error(w, "You are not authorized to delete this chirp", http.StatusForbidden)
+		return
+	}
+
+	// Delete the chirp
+	err = cfg.db.DeleteChirp(r.Context(), chirpID)
+	if err != nil {
+		http.Error(w, "Failed to delete chirp", http.StatusInternalServerError)
+		return
+	}
+
+	// Return 204 No Content (success with no body)
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func main() {
 	err := godotenv.Load()
 
@@ -641,6 +688,8 @@ func main() {
 	mux.HandleFunc("POST /api/revoke", apiCfg.handlerRevoke)
 
 	mux.HandleFunc("PUT /api/users", apiCfg.handlerUsersUpdate)
+
+	mux.HandleFunc("DELETE /api/chirps/{chirpID}", apiCfg.handlerChirpsDelete)
 
 	server := &http.Server{
 		Handler: mux,
