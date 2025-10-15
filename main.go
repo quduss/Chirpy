@@ -626,6 +626,37 @@ func (cfg *apiConfig) handlerChirpsDelete(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// POST /api/polka/webhooks - Handle Polka payment webhooks
+func (cfg *apiConfig) handlerPolkaWebhook(w http.ResponseWriter, r *http.Request) {
+	// Parse request body
+	var req PolkaWebhookRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+	// If event is not user.upgraded, respond with 204 and ignore
+	if req.Event != "user.upgraded" {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	// Parse user ID from the webhook data
+	userID, err := uuid.Parse(req.Data.UserID)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+	// Upgrade user to Chirpy Red
+	err = cfg.db.UpgradeUserToChirpyRed(r.Context(), userID)
+	if err != nil {
+		// User not found
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	// Success - respond with 204
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func main() {
 	err := godotenv.Load()
 
@@ -698,6 +729,8 @@ func main() {
 	mux.HandleFunc("PUT /api/users", apiCfg.handlerUsersUpdate)
 
 	mux.HandleFunc("DELETE /api/chirps/{chirpID}", apiCfg.handlerChirpsDelete)
+
+	mux.HandleFunc("POST /api/polka/webhooks", apiCfg.handlerPolkaWebhook)
 
 	server := &http.Server{
 		Handler: mux,
