@@ -24,6 +24,7 @@ type apiConfig struct {
 	db             *database.Queries
 	platform       string
 	jwtSecret      string
+	polkaKey       string
 }
 
 type ValidateChirpRequest struct {
@@ -632,6 +633,19 @@ func (cfg *apiConfig) handlerChirpsDelete(w http.ResponseWriter, r *http.Request
 
 // POST /api/polka/webhooks - Handle Polka payment webhooks
 func (cfg *apiConfig) handlerPolkaWebhook(w http.ResponseWriter, r *http.Request) {
+	// Extract and validate API key
+	apiKey, err := auth.GetAPIKey(r.Header)
+	if err != nil {
+		http.Error(w, "Invalid or missing API key", http.StatusUnauthorized)
+		return
+	}
+
+	// Verify the API key matches our stored key
+	if apiKey != cfg.polkaKey {
+		http.Error(w, "Invalid API key", http.StatusUnauthorized)
+		return
+	}
+
 	// Parse request body
 	var req PolkaWebhookRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -697,11 +711,13 @@ func main() {
 
 	// Create SQLC queries instance
 	dbQueries := database.New(db)
+	polkaKey := os.Getenv("POLKA_KEY")
 
 	apiCfg := &apiConfig{}
 	apiCfg.db = dbQueries
 	apiCfg.platform = platform
 	apiCfg.jwtSecret = jwtSecret
+	apiCfg.polkaKey = polkaKey
 	mux := http.NewServeMux()
 
 	// Add the readiness endpoint at /healthz
