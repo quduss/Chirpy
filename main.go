@@ -322,7 +322,27 @@ func (cfg *apiConfig) createChirpHandler(w http.ResponseWriter, r *http.Request)
 // getAllChirpsHandler handles GET /api/chirps
 func (cfg *apiConfig) getAllChirpsHandler(w http.ResponseWriter, r *http.Request) {
 	// Get all chirps from database
-	dbChirps, err := cfg.db.GetAllChirps(r.Context())
+	// Get the optional author_id query parameter
+	authorIDStr := r.URL.Query().Get("author_id")
+
+	var dbChirps []database.Chirp
+	var err error
+
+	if authorIDStr != "" {
+		// Parse the author_id
+		authorID, parseErr := uuid.Parse(authorIDStr)
+		if parseErr != nil {
+			http.Error(w, "Invalid author ID", http.StatusBadRequest)
+			return
+		}
+
+		// Get chirps for specific author
+		dbChirps, err = cfg.db.GetChirpsByAuthor(r.Context(), authorID)
+	} else {
+		// Get all chirps
+		dbChirps, err = cfg.db.GetAllChirps(r.Context())
+	}
+
 	if err != nil {
 		log.Printf("Error getting chirps: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
